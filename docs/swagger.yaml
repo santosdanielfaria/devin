@@ -1,0 +1,138 @@
+swagger: "2.0"
+info:
+  title: "Table Replication Service API"
+  description: "A service for replicating data between database tables"
+  version: "1.0.0"
+  contact:
+    name: "Table Replication Service"
+host: "localhost:8080"
+basePath: "/"
+schemes:
+  - "http"
+  - "https"
+paths:
+  /health-check:
+    get:
+      tags:
+        - "health"
+      summary: "Health Check"
+      description: "Check if the service is healthy and running"
+      produces:
+        - "application/json"
+      responses:
+        200:
+          description: "Service is healthy"
+          schema:
+            type: "object"
+            properties:
+              status:
+                type: "string"
+                example: "healthy"
+              service:
+                type: "string"
+                example: "table-replication-service"
+        503:
+          description: "Service is unhealthy"
+          schema:
+            type: "object"
+            properties:
+              status:
+                type: "string"
+                example: "unhealthy"
+              error:
+                type: "string"
+                example: "database connection failed"
+  /validation:
+    get:
+      tags:
+        - "validation"
+      summary: "Validation"
+      description: "Validate sync status between source and target databases"
+      produces:
+        - "application/json"
+      responses:
+        200:
+          description: "Databases are in sync"
+          schema:
+            type: "object"
+            properties:
+              source_count:
+                type: "integer"
+                example: 1000
+              target_count:
+                type: "integer"
+                example: 1000
+              is_sync:
+                type: "boolean"
+                example: true
+              difference:
+                type: "integer"
+                example: 0
+        409:
+          description: "Databases are not in sync"
+          schema:
+            type: "object"
+            properties:
+              source_count:
+                type: "integer"
+                example: 1000
+              target_count:
+                type: "integer"
+                example: 950
+              is_sync:
+                type: "boolean"
+                example: false
+              difference:
+                type: "integer"
+                example: 50
+        500:
+          description: "Internal server error"
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+                example: "failed to count records"
+  /status:
+    get:
+      tags:
+        - "status"
+      summary: "Status"
+      description: "Get current replication status and information"
+      produces:
+        - "application/json"
+      responses:
+        200:
+          description: "Current replication status"
+          schema:
+            type: "object"
+            properties:
+              table_name:
+                type: "string"
+                example: "sim_imei_binding"
+              site_identifier:
+                type: "string"
+                example: "sa-east-1a"
+              last_replicated_id:
+                type: "integer"
+                example: 12345
+              is_sync:
+                type: "boolean"
+                example: true
+              sync_info:
+                type: "object"
+              status:
+                type: "string"
+                example: "running"
+  /metrics:
+    get:
+      tags:
+        - "metrics"
+      summary: "Prometheus Metrics"
+      description: "Get Prometheus metrics for monitoring"
+      produces:
+        - "text/plain"
+      responses:
+        200:
+          description: "Prometheus metrics"
+definitions: {}
