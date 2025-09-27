@@ -58,6 +58,8 @@ driver = ${DB_TARGET_DRIVER:mysql}
 table_name = sim_imei_binding
 interval_seconds = 10
 site_identifier = sa-east-1a
+source_az = sa-east-1a
+target_az = sa-east-1c
 enable_logging = true
 batch_size = 100
 
@@ -82,11 +84,12 @@ CREATE TABLE sim_imei_binding (
   az VARCHAR(10) DEFAULT "sa-east-1a",
   locked TINYINT(1) NOT NULL DEFAULT 0,
   lastupdatetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  original_id BIGINT UNSIGNED DEFAULT NULL,
   KEY idx_sim_imei_msisdn (msisdn)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 ```
 
-The service automatically creates a `replication_offset` table to track replication progress.
+The service automatically creates a `replication_offset` table to track replication progress. The `original_id` field is used to track the source record ID when replicating between databases to prevent primary key conflicts in bidirectional replication scenarios.
 
 ## Installation
 
