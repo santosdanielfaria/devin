@@ -125,7 +125,6 @@ func (dm *DatabaseManager) InsertRecords(records []models.SimImeiBinding, target
 		originalID := records[i].ID
 		records[i].OriginalID = &originalID
 		records[i].ID = 0
-		records[i].AZ = targetAZ
 	}
 
 	return dm.TargetDB.CreateInBatches(records, len(records)).Error
@@ -167,7 +166,7 @@ func (dm *DatabaseManager) ValidateSync(sourceAZ, targetAZ string) (bool, map[st
 		return false, nil, fmt.Errorf("failed to count source records: %w", err)
 	}
 	
-	if err := dm.TargetDB.Model(&models.SimImeiBinding{}).Where("az = ? AND original_id IS NOT NULL", targetAZ).Count(&targetCount).Error; err != nil {
+	if err := dm.TargetDB.Model(&models.SimImeiBinding{}).Where("original_id IS NOT NULL").Count(&targetCount).Error; err != nil {
 		return false, nil, fmt.Errorf("failed to count target records: %w", err)
 	}
 	

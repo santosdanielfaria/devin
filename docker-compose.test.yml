@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mysql-source:
+    image: mysql:8.0
+    container_name: mysql-source-test
+    environment:
+      MYSQL_ROOT_PASSWORD: testpass
+      MYSQL_DATABASE: site_a_test
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./tests/init-source.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+
+  mysql-target:
+    image: mysql:8.0
+    container_name: mysql-target-test
+    environment:
+      MYSQL_ROOT_PASSWORD: testpass
+      MYSQL_DATABASE: site_b_test
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./tests/init-target.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password

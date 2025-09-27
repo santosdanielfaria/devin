@@ -1,0 +1,20 @@
+CREATE DATABASE IF NOT EXISTS site_a_test;
+USE site_a_test;
+
+CREATE TABLE IF NOT EXISTS sim_imei_binding (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  msisdn VARCHAR(20) NOT NULL,
+  imei VARCHAR(15) DEFAULT NULL,
+  az VARCHAR(10) DEFAULT "sa-east-1a",
+  locked TINYINT(1) NOT NULL DEFAULT 0,
+  lastupdatetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  original_id BIGINT UNSIGNED DEFAULT NULL,
+  KEY idx_sim_imei_msisdn (msisdn)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO sim_imei_binding (msisdn, imei, az, locked) VALUES
+('5511999999001', '123456789012345', 'sa-east-1a', 0),
+('5511999999002', '123456789012346', 'sa-east-1a', 0),
+('5511999999003', '123456789012347', 'sa-east-1a', 0),
+('5511999999004', '123456789012348', 'sa-east-1a', 0),
+('5511999999005', '123456789012349', 'sa-east-1a', 0);
