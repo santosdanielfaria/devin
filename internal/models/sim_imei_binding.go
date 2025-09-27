@@ -19,13 +19,14 @@ func (SimImeiBinding) TableName() string {
 }
 
 type ReplicationOffset struct {
-	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	Table        string    `gorm:"column:table_name;type:varchar(100);not null" json:"table_name"`
-	LastID       uint64    `gorm:"column:last_id;not null;default:0" json:"last_id"`
-	SiteID       string    `gorm:"column:site_id;type:varchar(20);not null" json:"site_id"`
-	SourceAZ     string    `gorm:"column:source_az;type:varchar(20);not null" json:"source_az"`
-	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updated_at"`
-	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
+        	ID            uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	Table         string    `gorm:"column:table_name;type:varchar(100);not null" json:"table_name"`
+	LastID        uint64    `gorm:"column:last_id;not null;default:0" json:"last_id"`
+	LastTimestamp time.Time `gorm:"column:last_timestamp;type:timestamp;default:CURRENT_TIMESTAMP" json:"last_timestamp"`
+	SiteID        string    `gorm:"column:site_id;type:varchar(20);not null" json:"site_id"`
+	SourceAZ      string    `gorm:"column:source_az;type:varchar(20);not null" json:"source_az"`
+	UpdatedAt     time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	CreatedAt     time.Time `gorm:"autoCreateTime" json:"created_at"`
 }
 
 func (ReplicationOffset) TableName() string {

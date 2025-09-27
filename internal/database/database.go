@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"time"
 	"table-replication-service/internal/config"
 	"table-replication-service/internal/models"
 
@@ -105,11 +106,12 @@ func (dm *DatabaseManager) Close() error {
 	return nil
 }
 
-func (dm *DatabaseManager) GetNewRecords(lastID uint64, limit int, sourceAZ string) ([]models.SimImeiBinding, error) {
+func (dm *DatabaseManager) GetNewRecords(lastTimestamp time.Time, lastID uint64, limit int, sourceAZ string) ([]models.SimImeiBinding, error) {
 	var records []models.SimImeiBinding
 	
-	err := dm.SourceDB.Where("id > ? AND az = ? AND original_id IS NULL", lastID, sourceAZ).
-		Order("id ASC").
+	err := dm.SourceDB.Where("(lastupdatetime > ? OR (lastupdatetime = ? AND id > ?)) AND az = ? AND original_id IS NULL", 
+		lastTimestamp, lastTimestamp, lastID, sourceAZ).
+		Order("lastupdatetime ASC, id ASC").
 		Limit(limit).
 		Find(&records).Error
 	
@@ -121,16 +123,19 @@ func (dm *DatabaseManager) InsertRecords(records []models.SimImeiBinding, target
 		return nil
 	}
 
-	for i := range records {
-		originalID := records[i].ID
-		records[i].OriginalID = &originalID
-		records[i].ID = 0
+	recordsCopy := make([]models.SimImeiBinding, len(records))
+	copy(recordsCopy, records)
+
+	for i := range recordsCopy {
+		originalID := recordsCopy[i].ID
+		recordsCopy[i].OriginalID = &originalID
+		recordsCopy[i].ID = 0
 	}
 
-	return dm.TargetDB.CreateInBatches(records, len(records)).Error
+	return dm.TargetDB.CreateInBatches(recordsCopy, len(recordsCopy)).Error
 }
 
-func (dm *DatabaseManager) GetLastOffset(tableName, siteID, sourceAZ string) (uint64, error) {
+func (dm *DatabaseManager) GetLastOffset(tableName, siteID, sourceAZ string) (time.Time, uint64, error) {
 	var offset models.ReplicationOffset
 	
 	err := dm.SourceDB.Where("table_name = ? AND site_id = ? AND source_az = ?", tableName, siteID, sourceAZ).
@@ -138,24 +143,25 @@ func (dm *DatabaseManager) GetLastOffset(tableName, siteID, sourceAZ string) (ui
 	
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return 0, nil
+			return time.Time{}, 0, nil
 		}
-		return 0, err
+		return time.Time{}, 0, err
 	}
 	
-	return offset.LastID, nil
+	return offset.LastTimestamp, offset.LastID, nil
 }
 
-func (dm *DatabaseManager) UpdateOffset(tableName, siteID, sourceAZ string, lastID uint64) error {
+func (dm *DatabaseManager) UpdateOffset(tableName, siteID, sourceAZ string, lastTimestamp time.Time, lastID uint64) error {
 	offset := models.ReplicationOffset{
-		Table:    tableName,
-		LastID:   lastID,
-		SiteID:   siteID,
-		SourceAZ: sourceAZ,
+		Table:         tableName,
+		LastID:        lastID,
+		LastTimestamp: lastTimestamp,
+		SiteID:        siteID,
+		SourceAZ:      sourceAZ,
 	}
 
 	return dm.SourceDB.Where("table_name = ? AND site_id = ? AND source_az = ?", tableName, siteID, sourceAZ).
-		Assign(models.ReplicationOffset{LastID: lastID}).
+		Assign(models.ReplicationOffset{LastID: lastID, LastTimestamp: lastTimestamp}).
 		FirstOrCreate(&offset).Error
 }
 

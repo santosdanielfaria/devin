@@ -2,6 +2,7 @@ package tests
 
 import (
 	"testing"
+	"time"
 	"table-replication-service/internal/config"
 	"table-replication-service/internal/database"
 	"table-replication-service/internal/models"
@@ -30,7 +31,7 @@ func TestAZFieldPreservation(t *testing.T) {
 		t.Fatalf("Failed to create test record: %v", err)
 	}
 
-	records, err := dbManager.GetNewRecords(0, 10, "sa-east-1a")
+	records, err := dbManager.GetNewRecords(time.Time{}, 0, 10, "sa-east-1a")
 	if err != nil {
 		t.Fatalf("Failed to get new records: %v", err)
 	}
