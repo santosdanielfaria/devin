@@ -11,6 +11,7 @@ type SimImeiBinding struct {
 	AZ             string    `gorm:"column:az;type:varchar(10);default:'sa-east-1a'" json:"az"`
 	Locked         bool      `gorm:"column:locked;type:tinyint(1);not null;default:0" json:"locked"`
 	LastUpdateTime time.Time `gorm:"column:lastupdatetime;type:timestamp;default:CURRENT_TIMESTAMP;autoUpdateTime" json:"lastupdatetime"`
+	OriginalID     *uint64   `gorm:"column:original_id;type:bigint unsigned" json:"original_id,omitempty"`
 }
 
 func (SimImeiBinding) TableName() string {
@@ -22,6 +23,7 @@ type ReplicationOffset struct {
 	Table        string    `gorm:"column:table_name;type:varchar(100);not null" json:"table_name"`
 	LastID       uint64    `gorm:"column:last_id;not null;default:0" json:"last_id"`
 	SiteID       string    `gorm:"column:site_id;type:varchar(20);not null" json:"site_id"`
+	SourceAZ     string    `gorm:"column:source_az;type:varchar(20);not null" json:"source_az"`
 	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
 }

@@ -60,7 +60,7 @@ func (r *Replicator) Stop() {
 func (r *Replicator) replicate() {
 	startTime := time.Now()
 	
-	lastID, err := r.dbManager.GetLastOffset(r.config.Replication.TableName, r.config.Replication.SiteIdentifier)
+	lastID, err := r.dbManager.GetLastOffset(r.config.Replication.TableName, r.config.Replication.SiteIdentifier, r.config.Replication.SourceAZ)
 	if err != nil {
 		r.metrics.IncrementReplicationErrors()
 		if r.config.Replication.EnableLogging {
@@ -69,7 +69,7 @@ func (r *Replicator) replicate() {
 		return
 	}
 
-	records, err := r.dbManager.GetNewRecords(lastID, r.config.Replication.BatchSize)
+	records, err := r.dbManager.GetNewRecords(lastID, r.config.Replication.BatchSize, r.config.Replication.SourceAZ)
 	if err != nil {
 		r.metrics.IncrementReplicationErrors()
 		if r.config.Replication.EnableLogging {
@@ -82,7 +82,7 @@ func (r *Replicator) replicate() {
 		return
 	}
 
-	if err := r.dbManager.InsertRecords(records); err != nil {
+	if err := r.dbManager.InsertRecords(records, r.config.Replication.TargetAZ); err != nil {
 		r.metrics.IncrementReplicationErrors()
 		if r.config.Replication.EnableLogging {
 			log.Printf("Error inserting records: %v", err)
@@ -91,7 +91,7 @@ func (r *Replicator) replicate() {
 	}
 
 	newLastID := records[len(records)-1].ID
-	if err := r.dbManager.UpdateOffset(r.config.Replication.TableName, r.config.Replication.SiteIdentifier, newLastID); err != nil {
+	if err := r.dbManager.UpdateOffset(r.config.Replication.TableName, r.config.Replication.SiteIdentifier, r.config.Replication.SourceAZ, newLastID); err != nil {
 		r.metrics.IncrementReplicationErrors()
 		if r.config.Replication.EnableLogging {
 			log.Printf("Error updating offset: %v", err)
@@ -101,7 +101,7 @@ func (r *Replicator) replicate() {
 
 	r.metrics.AddReplicatedRecords(float64(len(records)))
 	
-	isSync, _, err := r.dbManager.ValidateSync()
+	isSync, _, err := r.dbManager.ValidateSync(r.config.Replication.SourceAZ, r.config.Replication.TargetAZ)
 	if err != nil {
 		if r.config.Replication.EnableLogging {
 			log.Printf("Error validating sync: %v", err)
@@ -118,12 +118,12 @@ func (r *Replicator) replicate() {
 }
 
 func (r *Replicator) GetStatus() map[string]interface{} {
-	lastID, err := r.dbManager.GetLastOffset(r.config.Replication.TableName, r.config.Replication.SiteIdentifier)
+	lastID, err := r.dbManager.GetLastOffset(r.config.Replication.TableName, r.config.Replication.SiteIdentifier, r.config.Replication.SourceAZ)
 	if err != nil {
 		lastID = 0
 	}
 
-	isSync, syncInfo, err := r.dbManager.ValidateSync()
+	isSync, syncInfo, err := r.dbManager.ValidateSync(r.config.Replication.SourceAZ, r.config.Replication.TargetAZ)
 	if err != nil {
 		isSync = false
 		syncInfo = map[string]interface{}{
@@ -132,11 +132,13 @@ func (r *Replicator) GetStatus() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"table_name":      r.config.Replication.TableName,
-		"site_identifier": r.config.Replication.SiteIdentifier,
+		"table_name":         r.config.Replication.TableName,
+		"site_identifier":    r.config.Replication.SiteIdentifier,
+		"source_az":          r.config.Replication.SourceAZ,
+		"target_az":          r.config.Replication.TargetAZ,
 		"last_replicated_id": lastID,
-		"is_sync":         isSync,
-		"sync_info":       syncInfo,
-		"status":          "running",
+		"is_sync":            isSync,
+		"sync_info":          syncInfo,
+		"status":             "running",
 	}
 }

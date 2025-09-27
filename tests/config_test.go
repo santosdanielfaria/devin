@@ -27,6 +27,8 @@ driver = mysql
 table_name = test_table
 interval_seconds = 5
 site_identifier = test-site
+source_az = sa-east-1a
+target_az = sa-east-1c
 enable_logging = true
 batch_size = 50
 
@@ -68,6 +70,14 @@ metrics_path = /metrics`
 
 	if cfg.Replication.IntervalSeconds != 5 {
 		t.Errorf("Expected interval 5, got %d", cfg.Replication.IntervalSeconds)
+	}
+
+	if cfg.Replication.SourceAZ != "sa-east-1a" {
+		t.Errorf("Expected source_az 'sa-east-1a', got '%s'", cfg.Replication.SourceAZ)
+	}
+
+	if cfg.Replication.TargetAZ != "sa-east-1c" {
+		t.Errorf("Expected target_az 'sa-east-1c', got '%s'", cfg.Replication.TargetAZ)
 	}
 }
 

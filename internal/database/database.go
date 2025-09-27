@@ -105,10 +105,10 @@ func (dm *DatabaseManager) Close() error {
 	return nil
 }
 
-func (dm *DatabaseManager) GetNewRecords(lastID uint64, limit int) ([]models.SimImeiBinding, error) {
+func (dm *DatabaseManager) GetNewRecords(lastID uint64, limit int, sourceAZ string) ([]models.SimImeiBinding, error) {
 	var records []models.SimImeiBinding
 	
-	err := dm.SourceDB.Where("id > ?", lastID).
+	err := dm.SourceDB.Where("id > ? AND az = ? AND original_id IS NULL", lastID, sourceAZ).
 		Order("id ASC").
 		Limit(limit).
 		Find(&records).Error
@@ -116,18 +116,25 @@ func (dm *DatabaseManager) GetNewRecords(lastID uint64, limit int) ([]models.Sim
 	return records, err
 }
 
-func (dm *DatabaseManager) InsertRecords(records []models.SimImeiBinding) error {
+func (dm *DatabaseManager) InsertRecords(records []models.SimImeiBinding, targetAZ string) error {
 	if len(records) == 0 {
 		return nil
+	}
+
+	for i := range records {
+		originalID := records[i].ID
+		records[i].OriginalID = &originalID
+		records[i].ID = 0
+		records[i].AZ = targetAZ
 	}
 
 	return dm.TargetDB.CreateInBatches(records, len(records)).Error
 }
 
-func (dm *DatabaseManager) GetLastOffset(tableName, siteID string) (uint64, error) {
+func (dm *DatabaseManager) GetLastOffset(tableName, siteID, sourceAZ string) (uint64, error) {
 	var offset models.ReplicationOffset
 	
-	err := dm.SourceDB.Where("table_name = ? AND site_id = ?", tableName, siteID).
+	err := dm.SourceDB.Where("table_name = ? AND site_id = ? AND source_az = ?", tableName, siteID, sourceAZ).
 		First(&offset).Error
 	
 	if err != nil {
@@ -140,26 +147,27 @@ func (dm *DatabaseManager) GetLastOffset(tableName, siteID string) (uint64, erro
 	return offset.LastID, nil
 }
 
-func (dm *DatabaseManager) UpdateOffset(tableName, siteID string, lastID uint64) error {
+func (dm *DatabaseManager) UpdateOffset(tableName, siteID, sourceAZ string, lastID uint64) error {
 	offset := models.ReplicationOffset{
-		Table:  tableName,
-		LastID: lastID,
-		SiteID: siteID,
+		Table:    tableName,
+		LastID:   lastID,
+		SiteID:   siteID,
+		SourceAZ: sourceAZ,
 	}
 
-	return dm.SourceDB.Where("table_name = ? AND site_id = ?", tableName, siteID).
+	return dm.SourceDB.Where("table_name = ? AND site_id = ? AND source_az = ?", tableName, siteID, sourceAZ).
 		Assign(models.ReplicationOffset{LastID: lastID}).
 		FirstOrCreate(&offset).Error
 }
 
-func (dm *DatabaseManager) ValidateSync() (bool, map[string]interface{}, error) {
+func (dm *DatabaseManager) ValidateSync(sourceAZ, targetAZ string) (bool, map[string]interface{}, error) {
 	var sourceCount, targetCount int64
 	
-	if err := dm.SourceDB.Model(&models.SimImeiBinding{}).Count(&sourceCount).Error; err != nil {
+	if err := dm.SourceDB.Model(&models.SimImeiBinding{}).Where("az = ? AND original_id IS NULL", sourceAZ).Count(&sourceCount).Error; err != nil {
 		return false, nil, fmt.Errorf("failed to count source records: %w", err)
 	}
 	
-	if err := dm.TargetDB.Model(&models.SimImeiBinding{}).Count(&targetCount).Error; err != nil {
+	if err := dm.TargetDB.Model(&models.SimImeiBinding{}).Where("az = ? AND original_id IS NOT NULL", targetAZ).Count(&targetCount).Error; err != nil {
 		return false, nil, fmt.Errorf("failed to count target records: %w", err)
 	}
 	
@@ -170,6 +178,8 @@ func (dm *DatabaseManager) ValidateSync() (bool, map[string]interface{}, error) 
 		"target_count": targetCount,
 		"is_sync":      isSync,
 		"difference":   sourceCount - targetCount,
+		"source_az":    sourceAZ,
+		"target_az":    targetAZ,
 	}
 	
 	return isSync, result, nil

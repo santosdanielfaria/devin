@@ -89,7 +89,7 @@ func (s *APIServer) healthCheck(c *gin.Context) {
 }
 
 func (s *APIServer) validation(c *gin.Context) {
-	isSync, result, err := s.dbManager.ValidateSync()
+	isSync, result, err := s.dbManager.ValidateSync(s.config.Replication.SourceAZ, s.config.Replication.TargetAZ)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),

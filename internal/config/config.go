@@ -18,6 +18,8 @@ type ReplicationConfig struct {
 	TableName        string
 	IntervalSeconds  int
 	SiteIdentifier   string
+	SourceAZ         string
+	TargetAZ         string
 	EnableLogging    bool
 	BatchSize        int
 }
@@ -73,6 +75,8 @@ func LoadConfig(configPath string) (*Config, error) {
 		TableName:       replicationSection.Key("table_name").String(),
 		IntervalSeconds: replicationSection.Key("interval_seconds").MustInt(10),
 		SiteIdentifier:  replicationSection.Key("site_identifier").String(),
+		SourceAZ:        replicationSection.Key("source_az").MustString("sa-east-1a"),
+		TargetAZ:        replicationSection.Key("target_az").MustString("sa-east-1c"),
 		EnableLogging:   replicationSection.Key("enable_logging").MustBool(true),
 		BatchSize:       replicationSection.Key("batch_size").MustInt(100),
 	}
