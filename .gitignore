@@ -45,3 +45,4 @@ config-dev.ini
 # Temporary files
 tmp/
 temp/
+go1.21.0.linux-amd64.tar.gz
